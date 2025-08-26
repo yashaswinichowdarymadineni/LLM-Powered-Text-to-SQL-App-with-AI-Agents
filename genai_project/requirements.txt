@@ -1,0 +1,13 @@
+transformers
+torch
+accelerate
+bitsandbytes>=0.45.5
+Flask
+langchain
+langchain-community
+langchain-huggingface
+SQLAlchemy
+uvicorn
+requests
+sqlparse
+google-generativeai

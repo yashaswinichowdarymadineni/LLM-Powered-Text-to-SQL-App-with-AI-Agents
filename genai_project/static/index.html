@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formula 1 Text to SQL</title>
+  <style>
+    /* Reset & base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: url('https://images6.alphacoders.com/112/1120089.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px 0;
+    }
+    .container {
+      width: 90%;
+      max-width: 800px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      background: #eef1f8;
+    }
+    .tabs label {
+      flex: 1;
+      padding: 14px 0;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      color: #4a5568;
+      transition: background 0.3s, color 0.3s;
+      border-bottom: 3px solid transparent;
+    }
+    .tabs label:hover {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+    input[name="page"] { display: none; }
+    #home-tab:checked ~ .tabs label[for="home-tab"],
+    #result-tab:checked ~ .tabs label[for="result-tab"] {
+      background: #fff;
+      border-bottom: 3px solid #e10600;
+      color: #e10600;
+    }
+    section {
+      display: none;
+      padding: 24px;
+    }
+    #home-tab:checked ~ section.home,
+    #result-tab:checked ~ section.result {
+      display: block;
+    }
+    section h2, section h3 {
+      margin-bottom: 16px;
+      color: #1a202c;
+    }
+    section.home h2 {
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    input[type="text"]#nlQuery,
+    input[type="text"]#refinedQuery {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccd0da;
+      border-radius: 6px;
+      font-size: 1rem;
+      color: #2d3748;
+    }
+    input[type="text"]#nlQuery:focus,
+    input[type="text"]#refinedQuery:focus {
+      border-color: #e10600;
+      box-shadow: 0 0 0 2px rgba(225, 6, 0, 0.2);
+      outline: none;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 20px;
+      background: #e10600;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+      text-align: center;
+    }
+    .btn:hover { background: #c50500; }
+    .result-section-item {
+      margin-bottom: 20px;
+    }
+    #sqlOutput {
+      background: #f7fafc;
+      padding: 12px;
+      border-radius: 6px;
+      min-height: 60px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid #e2e8f0;
+      color: #2d3748;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      background-color: #fff;
+    }
+    .result-table th,
+    .result-table td {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .result-table th {
+      background: #edf2f7;
+      font-weight: 600;
+      color: #4a5568;
+    }
+    .result-table td {
+      color: #2d3748;
+    }
+    .result-table tbody tr:nth-child(even) {
+      background-color: #f7fafc;
+    }
+    #agentLogDisplay {
+      background: #f0f0f0;
+      padding: 12px;
+      border-radius: 6px;
+      min-height: 100px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      font-size: 0.85rem;
+      color: #4a5568;
+    }
+    .download-btn {
+      background: #38a169;
+    }
+    .download-btn:hover { background: #2f855a; }
+    #clarificationArea {
+      background: #f7fafc;
+      padding: 16px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      margin-top: 20px;
+    }
+    #clarificationArea h3 {
+      color: #e10600;
+      margin-bottom: 12px;
+    }
+    #clarificationReason {
+      color: #2d3748;
+      margin-bottom: 12px;
+    }
+    #clarificationQuestions li {
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <input type="radio" name="page" id="home-tab" checked>
+    <input type="radio" name="page" id="result-tab">
+
+    <div class="tabs">
+      <label for="home-tab">Query</label>
+      <label for="result-tab">Results</label>
+    </div>
+
+    <section class="home">
+      <h2>F1 Data Pit Stop</h2>
+      <div class="form-group">
+        <input type="text" id="nlQuery" placeholder="e.g., List Ferrari drivers from the 2018 season">
+      </div>
+      <button class="btn" onclick="submitQuery()">Generate SQL</button>
+      <div id="clarificationArea" style="display: none;">
+        <h3>Clarification Needed</h3>
+        <p id="clarificationReason"></p>
+        <ul id="clarificationQuestions" style="margin: 10px 0 20px 20px;"></ul>
+        <div class="form-group">
+          <input type="text" id="refinedQuery" placeholder="Refine your query here">
+        </div>
+        <button class="btn" onclick="submitRefinedQuery()">Submit Refined Query</button>
+        <button class="btn" style="background: #4a5568; margin-left: 10px;" onclick="clearClarification()">Clear Clarification</button>
+      </div>
+    </section>
+
+    <section class="result">
+      <div class="result-section-item">
+        <h2>Generated SQL</h2>
+        <pre id="sqlOutput">-- Generated SQL will appear here --</pre>
+      </div>
+
+      <div class="result-section-item">
+        <h3>Query Results</h3>
+        <table class="result-table" id="resultTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody">
+            <tr><td colspan="4" style="text-align:center;">Enter a query to see results.</td></tr>
+          </tbody>
+        </table>
+        <button class="btn download-btn" onclick="downloadCSV()">Download CSV</button>
+      </div>
+
+      <div class="result-section-item">
+        <h3>Agent Log</h3>
+        <pre id="agentLogDisplay">-- Agent processing steps will appear here --</pre>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    async function submitQuery() {
+      const nlQuery = document.getElementById('nlQuery').value.trim();
+      if (!nlQuery) {
+        alert("Please enter a natural language query.");
+        return;
+      }
+      await processQuery(nlQuery);
+    }
+
+    async function submitRefinedQuery() {
+      const refinedQuery = document.getElementById('refinedQuery').value.trim();
+      if (!refinedQuery) {
+        alert("Please enter a refined query.");
+        return;
+      }
+      document.getElementById('clarificationArea').style.display = 'none';
+      document.getElementById('refinedQuery').value = '';
+      document.getElementById('nlQuery').value = refinedQuery;
+      await processQuery(refinedQuery);
+    }
+
+    function clearClarification() {
+      document.getElementById('clarificationArea').style.display = 'none';
+      document.getElementById('refinedQuery').value = '';
+    }
+
+    async function processQuery(query) {
+      const sqlOutputEl = document.getElementById('sqlOutput');
+      const tableHeadEl = document.getElementById('tableHead');
+      const tableBodyEl = document.getElementById('tableBody');
+      const agentLogDisplayEl = document.getElementById('agentLogDisplay');
+      const clarificationAreaEl = document.getElementById('clarificationArea');
+      const clarificationReasonEl = document.getElementById('clarificationReason');
+      const clarificationQuestionsEl = document.getElementById('clarificationQuestions');
+
+      sqlOutputEl.textContent = 'Generating SQL and fetching results...';
+      tableHeadEl.innerHTML = '';
+      tableBodyEl.innerHTML = '<tr><td colspan="100%" style="text-align:center;">Loading...</td></tr>';
+      agentLogDisplayEl.textContent = 'Processing...';
+      clarificationAreaEl.style.display = 'none';
+
+      try {
+        const response = await fetch('/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ natural_language_query: query }),
+        });
+
+        const result = await response.json();
+
+        if (result.agent_log && Array.isArray(result.agent_log)) {
+          agentLogDisplayEl.textContent = result.agent_log.join('\n');
+        } else {
+          agentLogDisplayEl.textContent = 'Agent log not available or in unexpected format.';
+        }
+
+        if (!response.ok) {
+          sqlOutputEl.textContent = `Error: ${result.error || response.statusText || 'Unknown error from server'}`;
+          tableBodyEl.innerHTML = `<tr><td colspan="100%" style="text-align:center;">Error fetching results: ${result.error || response.statusText}</td></tr>`;
+          console.error("Backend Error:", result);
+          document.getElementById('result-tab').checked = true;
+          return;
+        }
+
+        if (result.clarification) {
+          clarificationReasonEl.textContent = result.clarification.reason || 'Please clarify your query.';
+          clarificationQuestionsEl.innerHTML = result.clarification.questions
+            .map(q => `<li>${q}</li>`)
+            .join('');
+          clarificationAreaEl.style.display = 'block';
+          document.getElementById('home-tab').checked = true;
+          return;
+        }
+
+        sqlOutputEl.textContent = result.generated_sql || '-- No SQL generated --';
+
+        const columns = result.columns || [];
+        const data = result.query_results || [];
+
+        if (columns.length > 0) {
+          tableHeadEl.innerHTML = `<tr>${columns.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        } else if (data.length > 0 && typeof data[0] === 'object' && data[0] !== null) {
+          tableHeadEl.innerHTML = `<tr>${Object.keys(data[0]).map(h => `<th>${h}</th>`).join('')}</tr>`;
+        } else {
+          tableHeadEl.innerHTML = '';
+        }
+
+        if (data.length > 0) {
+          tableBodyEl.innerHTML = data.map(row => {
+            let ordered_row_values = [];
+            const colsToUse = columns.length > 0 ? columns : (typeof row === 'object' && row !== null ? Object.keys(row) : []);
+            if (typeof row === 'object' && row !== null) {
+              ordered_row_values = colsToUse.map(col => (row[col] === null || row[col] === undefined ? '' : row[col]));
+            } else {
+              ordered_row_values = [String(row)];
+            }
+            return `<tr>${ordered_row_values.map(d => `<td>${d}</td>`).join('')}</tr>`;
+          }).join('');
+        } else {
+          const colspan = columns.length > 0 ? columns.length : 1;
+          tableBodyEl.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No results found.</td></tr>`;
+        }
+
+        window.currentTableData = { head: columns, data: data.map(row_obj => columns.map(col => row_obj[col])) };
+
+        console.log("Full Backend Response:", result);
+
+        document.getElementById('result-tab').checked = true;
+
+      } catch (error) {
+        console.error('Error:', error);
+        sqlOutputEl.textContent = `Frontend/Network Error: ${error.message}`;
+        tableBodyEl.innerHTML = '<tr><td colspan="100%" style="text-align:center;">Error processing request. Check console.</td></tr>';
+        agentLogDisplayEl.textContent = 'Failed to fetch agent log due to frontend/network error.';
+        document.getElementById('result-tab').checked = true;
+      }
+    }
+
+    function downloadCSV() {
+      const defaultHead = ['Column1', 'Column2'];
+      const defaultData = [['N/A', 'N/A']];
+
+      const tableInfo = window.currentTableData || { head: defaultHead, data: defaultData };
+      let { head, data } = tableInfo;
+
+      head = Array.isArray(head) ? head : defaultHead;
+      data = Array.isArray(data) ? data : defaultData;
+      if (data.length > 0 && !Array.isArray(data[0])) {
+        data = data.map(row_obj => head.map(col => row_obj[col] === null || row_obj[col] === undefined ? '' : row_obj[col]));
+      }
+
+      if (!head || head.length === 0) {
+        alert("No headers available for CSV.");
+        return;
+      }
+      if (data.length === 0 && (!Array.isArray(data[0]) || data[0].length === 0)) {
+        if (!confirm("No data rows found. Download CSV with only headers?")) {
+          return;
+        }
+      }
+
+      let csv = [head, ...data].map(r => {
+        if (!Array.isArray(r)) r = [String(r)];
+        return r.map(String).map(v => `"${v.replace(/"/g, '""')}"`).join(',');
+      }).join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'f1_results.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
