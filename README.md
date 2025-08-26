@@ -4,15 +4,15 @@ This project builds a GenAI pipeline for Text-to-SQL generation, enabling users 
 
 The system integrates multiple AI agents:
 
-Generation Agent (LLaMA-3) — initial SQL creation
+-> Generation Agent (LLaMA-3) — initial SQL creation
 
-Clarification Agent (Gemini via LangChain) — asks follow-up questions when queries are ambiguous
+-> Clarification Agent (Gemini via LangChain) — asks follow-up questions when queries are ambiguous
 
-Optimization Agent (OpenAI GPT-3.5 via LangChain) — validates and repairs SQL before execution
+-> Optimization Agent (OpenAI GPT-3.5 via LangChain) — validates and repairs SQL before execution
 
 A Flask backend with an HTML/CSS/JS frontend delivers an interactive interface, while the architecture demonstrates scalable deployment practices using Docker and CI/CD pipelines.
 
-Highlights
+Highlights ->
 
 Models: Fine-tuned LLaMA-3 (hosted on Hugging Face), Mistral (baseline comparison), Gemini (clarification), OpenAI GPT-3.5 (optimization)
 
